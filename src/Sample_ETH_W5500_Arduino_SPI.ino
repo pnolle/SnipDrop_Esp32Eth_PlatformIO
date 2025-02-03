@@ -1,74 +1,46 @@
-#include <ETH.h>
 #include <SPI.h>
+#include <Ethernet.h>
 
-#ifndef ETH_PHY_CS
-#define ETH_PHY_TYPE ETH_PHY_W5500
-#define ETH_PHY_ADDR 0
-#define ETH_PHY_CS   15
-#define ETH_PHY_IRQ  -1 // 4
-#define ETH_PHY_RST  5
-#endif
+// Pin definitions based on your wiring
+#define SCK_PIN 14
+#define MISO_PIN 12
+#define MOSI_PIN 13
+#define CS_PIN 15
+#define RST_PIN 5 // Optional, leave unconnected if not used
+#define IRQ_PIN -1 //4 // Set to 1 if IRQ is not wired
 
-#define ETH_SPI_SCK  14
-#define ETH_SPI_MISO 12
-#define ETH_SPI_MOSI 13
+// MAC address for the W5500
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
-static bool eth_connected = false;
-
-void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
-  switch (event) {
-    case ARDUINO_EVENT_ETH_START:
-      Serial.println("ETH Started");
-      ETH.setHostname("esp32-eth0");
-      break;
-    case ARDUINO_EVENT_ETH_CONNECTED:
-      Serial.println("ETH Connected");
-      break;
-    case ARDUINO_EVENT_ETH_GOT_IP:
-      Serial.printf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif));
-      eth_connected = true;
-      break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-    case ARDUINO_EVENT_ETH_STOP:
-      Serial.println("ETH Disconnected/Stopped");
-      eth_connected = false;
-      break;
-    default:
-      break;
-  }
-}
-
-void testClient(const char *host, uint16_t port) {
-  Serial.print("\nconnecting to ");
-  Serial.println(host);
-
-  EthernetClient client;  // Use EthernetClient
-  if (!client.connect(host, port)) {
-    Serial.println("connection failed");
-    return;
-  }
-
-  client.printf("GET / HTTP/1.1\r\nHost: %s\r\n\r\n", host);
-  while (client.connected() && !client.available());
-  while (client.available()) {
-    Serial.write(client.read());
-  }
-
-  Serial.println("closing connection\n");
-  client.stop();
-}
+// Static IP settings
+IPAddress local_IP_AP(192, 168, 1, 22); // Device's IP
+IPAddress gateway(192, 168, 1, 5);     // Gateway IP
+IPAddress subnet(255, 255, 255, 0);    // Subnet Mask
+IPAddress primaryDNS(8, 8, 8, 8);   // optional
 
 void setup() {
-  Serial.begin(115200);
+    // Initialize Serial for debugging
+    Serial.begin(115200);
+    delay(1000); // Allow time for serial monitor to connect
 
-  SPI.begin(ETH_SPI_SCK, ETH_SPI_MISO, ETH_SPI_MOSI);
-  ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, SPI);
-  ETH.onEvent(onEvent);
+    // Configure SPI pins manually
+    SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
+
+    // Initialize Ethernet with the specified CS pin
+    Ethernet.init(CS_PIN);
+
+    // Start Ethernet connection
+    Serial.println("Initializing Ethernet...");
+    Ethernet.begin(mac, local_IP_AP, primaryDNS, gateway, subnet);
+    if (Ethernet.hardwareStatus() != EthernetNoHardware && Ethernet.linkStatus() == LinkON) {
+        Serial.println("Ethernet initialized successfully!");
+        Serial.print("IP Address: ");
+        Serial.println(Ethernet.localIP());
+    } else {
+        Serial.println("Ethernet initialization failed. Check wiring and settings.");
+    }
 }
 
 void loop() {
-  if (eth_connected) {
-    testClient("google.com", 80);
-  }
-  delay(10000);
+    // Keep the loop empty for now
 }
