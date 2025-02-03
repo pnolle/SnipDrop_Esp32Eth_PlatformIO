@@ -1,5 +1,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
+
+#include <FastLED.h>  // include FastLED *before* Artnet
 #include <ArtnetEther.h>
 
 // Pin definitions based on your wiring
@@ -21,8 +23,13 @@ IPAddress primaryDNS(8, 8, 8, 8);   // optional
 
 unsigned int localPort = 6454; // Art-Net standard port
 ArtnetReceiver artnet;    // Art-Net instance
-uint16_t universe1 = 1; // 0 - 32767
-uint8_t universe2 = 2;  // 0 - 15
+uint8_t universe1 = 1; // 0 - 15
+// uint8_t universe2 = 2;  // 0 - 15
+
+// FastLED
+#define NUM_LEDS 125
+CRGB leds[NUM_LEDS];
+const uint8_t PIN_LED_DATA = 22;
 
 void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data) {
     Serial.print("Universe: ");
@@ -41,6 +48,9 @@ void setup() {
     // Initialize Serial for debugging
     Serial.begin(115200);
     delay(1000); // Allow time for serial monitor to connect
+
+    // FastLED.addLeds<NEOPIXEL, PIN_LED_DATA>(leds, NUM_LEDS);
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
 
     // Configure SPI pins manually
     SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
@@ -61,24 +71,27 @@ void setup() {
     
     // Start Art-Net
     artnet.begin();
+
+    // if Artnet packet comes to this universe, forward them to fastled directly
+    artnet.forwardArtDmxDataToFastLED(universe1, leds, NUM_LEDS);
     
-    // if Artnet packet comes to this universe, this function (lambda) is called
-    artnet.subscribeArtDmxUniverse(universe1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
-        Serial.print("lambda : artnet data from ");
-        Serial.print(remote.ip);
-        Serial.print(":");
-        Serial.print(remote.port);
-        Serial.print(", universe = ");
-        Serial.print(universe1);
-        Serial.print(", size = ");
-        Serial.print(size);
-        Serial.print(") :");
-        for (size_t i = 0; i < size; ++i) {
-            Serial.print(data[i]);
-            Serial.print(",");
-        }
-        Serial.println();
-    });
+    // // if Artnet packet comes to this universe, this function (lambda) is called
+    // artnet.subscribeArtDmxUniverse(universe1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
+    //     Serial.print("lambda : artnet data from ");
+    //     Serial.print(remote.ip);
+    //     Serial.print(":");
+    //     Serial.print(remote.port);
+    //     Serial.print(", universe = ");
+    //     Serial.print(universe1);
+    //     Serial.print(", size = ");
+    //     Serial.print(size);
+    //     Serial.print(") :");
+    //     for (size_t i = 0; i < size; ++i) {
+    //         Serial.print(data[i]);
+    //         Serial.print(",");
+    //     }
+    //     Serial.println();
+    // });
 
     // // you can also use pre-defined callbacks
     // artnet.subscribeArtDmxUniverse(universe2, onDmxFrame);
@@ -86,4 +99,5 @@ void setup() {
 
 void loop() {
     artnet.parse();
+    FastLED.show();
 }
