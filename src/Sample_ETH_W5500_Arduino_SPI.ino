@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <Ethernet.h>
+#include <EthernetUdp.h>
 
 // Pin definitions based on your wiring
 #define SCK_PIN 14
@@ -11,6 +12,15 @@
 
 // MAC address for the W5500
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+
+unsigned int localPort = 8888;       // local port to listen for UDP packets
+
+const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
+
+byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
+
+// A UDP instance to let us send and receive packets over UDP
+EthernetUDP Udp;
 
 // Static IP settings
 IPAddress local_IP_AP(192, 168, 1, 22); // Device's IP
@@ -39,8 +49,32 @@ void setup() {
     } else {
         Serial.println("Ethernet initialization failed. Check wiring and settings.");
     }
+  Udp.begin(localPort);
 }
 
-void loop() {
-    // Keep the loop empty for now
+void loop() {  
+    if (Udp.parsePacket()) {
+        Serial.print("Received packet of size ");
+        Serial.println(Udp.available());
+        Serial.print("From ");
+        IPAddress remote = Udp.remoteIP();
+        for (int i = 0; i < 4; i++) {
+            Serial.print(remote[i], DEC);
+            if (i < 3) {
+                Serial.print(".");
+            }
+        }
+        Serial.print(", port ");
+        Serial.println(Udp.remotePort());
+
+        // We've received a packet, read the data from it
+        Udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
+        for (int i = 0; i < NTP_PACKET_SIZE; i++) {
+            // print the hexadecimal value of the packet
+            Serial.print(packetBuffer[i], DEC);
+            Serial.print(" ");
+        }
+        Serial.println();
+        delay(100);
+    }
 }
