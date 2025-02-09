@@ -12,11 +12,23 @@
 #define RST_PIN 5 // Optional, leave unconnected if not used
 #define IRQ_PIN -1 //4 // Set to 1 if IRQ is not wired
 
-// MAC address for the W5500
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+// define enum for the different modes
+enum Mode {
+  MODE_CIRCLE,
+  MODE_ARROW,
+  MODE_LASERSCISSORS
+};
 
-// Static IP settings
-IPAddress local_IP_AP(192, 168, 1, 22); // Device's IP
+// Code configuration
+/*
+Valid values defined in enum Mode:
+1 = Access Point (192.168.1.24) + Circle (C)
+2 = Client 1 (192.168.1.25) Arrow (A)
+3 = Client 2 (192.168.1.26) Laser + Scissors (L)
+*/
+Mode config = Mode::MODE_ARROW;
+byte mac[6];
+IPAddress local_IP;
 IPAddress gateway(192, 168, 1, 5);     // Gateway IP
 IPAddress subnet(255, 255, 255, 0);    // Subnet Mask
 IPAddress primaryDNS(8, 8, 8, 8);   // optional
@@ -44,10 +56,45 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
     Serial.println();
 }
 
+void assignMacAndIps() {
+    if (config == Mode::MODE_CIRCLE)
+    {
+        mac[0] = 0xDE;
+        mac[1] = 0xAD;
+        mac[2] = 0xBE;
+        mac[3] = 0xEF;
+        mac[4] = 0xFE;
+        mac[5] = 0xED;
+        local_IP = IPAddress(192, 168, 1, 24);
+    }
+    if (config == Mode::MODE_ARROW)
+    {
+        mac[0] = 0xDE;
+        mac[1] = 0xAD;
+        mac[2] = 0xBE;
+        mac[3] = 0xEF;
+        mac[4] = 0xFE;
+        mac[5] = 0xEE;
+        local_IP = IPAddress(192, 168, 1, 25);
+    }
+    if (config == Mode::MODE_LASERSCISSORS)
+    {
+        mac[0] = 0xDE;
+        mac[1] = 0xAD;
+        mac[2] = 0xBE;
+        mac[3] = 0xEF;
+        mac[4] = 0xFE;
+        mac[5] = 0xEF;
+        local_IP = IPAddress(192, 168, 1, 26);
+    }
+}
+
 void setup() {
     // Initialize Serial for debugging
     Serial.begin(115200);
     delay(1000); // Allow time for serial monitor to connect
+
+    assignMacAndIps(); 
 
     // FastLED.addLeds<NEOPIXEL, PIN_LED_DATA>(leds, NUM_LEDS);
     FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
@@ -60,7 +107,7 @@ void setup() {
 
     // Start Ethernet connection
     Serial.println("Initializing Ethernet...");
-    Ethernet.begin(mac, local_IP_AP, primaryDNS, gateway, subnet);
+    Ethernet.begin(mac, local_IP, primaryDNS, gateway, subnet);
     if (Ethernet.hardwareStatus() != EthernetNoHardware && Ethernet.linkStatus() == LinkON) {
         Serial.println("Ethernet initialized successfully!");
         Serial.print("IP Address: ");
