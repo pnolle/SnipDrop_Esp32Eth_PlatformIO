@@ -89,10 +89,39 @@ void assignMacAndIps() {
     }
 }
 
+void initTest()
+{
+  Serial.printf("Init test %i\n", config);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(127, 0, 0);
+  }
+  FastLED.show();
+  delay(500);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(0, 127, 0);
+  }
+  FastLED.show();
+  delay(500);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(0, 0, 127);
+  }
+  FastLED.show();
+  delay(500);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(0, 0, 0);
+  }
+  FastLED.show();
+}
+
 void setup() {
     // Initialize Serial for debugging
     Serial.begin(115200);
     delay(1000); // Allow time for serial monitor to connect
+    Serial.println("This firmware is from the 'esp32_ethernet_platformIO' repo, 'artnetReceiver' branch.");
 
     assignMacAndIps(); 
 
@@ -118,6 +147,8 @@ void setup() {
     
     // Start Art-Net
     artnet.begin();
+
+    initTest();
 
     // if Artnet packet comes to this universe, forward them to fastled directly
     artnet.forwardArtDmxDataToFastLED(universe1, leds, NUM_LEDS);
