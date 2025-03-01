@@ -20,14 +20,9 @@ enum Mode
   MODE_LASERSCISSORS
 };
 
-// Code configuration
-/*
-Valid values defined in enum Mode:
-1 = Access Point (192.168.1.24) + Circle (C)
-2 = Client 1 (192.168.1.25) Arrow (A)
-3 = Client 2 (192.168.1.26) Laser + Scissors (L)
-*/
-Mode config = Mode::MODE_ARROW;
+// Firmware configuration
+Mode config = Mode::MODE_CIRCLE;
+
 byte mac[6];
 IPAddress local_IP;
 IPAddress gateway(192, 168, 1, 5);  // Gateway IP
@@ -71,12 +66,12 @@ void assignMacAndIps()
   if (config == Mode::MODE_CIRCLE)
   {
 #define NUM_LEDS 507
-    mac[0] = 0xDE;
-    mac[1] = 0xAD;
-    mac[2] = 0xBE;
-    mac[3] = 0xEF;
-    mac[4] = 0xFE;
-    mac[5] = 0xED;
+    mac[0] = 0xDE;  // 222
+    mac[1] = 0xAD;  // 173
+    mac[2] = 0xBE;  // 190
+    mac[3] = 0xEF;  // 239
+    mac[4] = 0xFE;  // 254
+    mac[5] = 0xED;  // 237
     local_IP = IPAddress(192, 168, 1, 24);
   }
   if (config == Mode::MODE_ARROW)
@@ -87,7 +82,8 @@ void assignMacAndIps()
     mac[2] = 0xBE;
     mac[3] = 0xEF;
     mac[4] = 0xFE;
-    mac[5] = 0xEE;
+    mac[5] = 0xEE;  // 238
+    local_IP = IPAddress(192, 168, 1, 25);
   }
   if (config == Mode::MODE_LASERSCISSORS)
   {
@@ -97,7 +93,7 @@ void assignMacAndIps()
     mac[2] = 0xBE;
     mac[3] = 0xEF;
     mac[4] = 0xFE;
-    mac[5] = 0xEF;
+    mac[5] = 0xEF;  // 239
     local_IP = IPAddress(192, 168, 1, 26);
   }
 }
