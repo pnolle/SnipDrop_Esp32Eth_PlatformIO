@@ -31,8 +31,6 @@ IPAddress primaryDNS(8, 8, 8, 8);   // optional
 
 unsigned int localPort = 6454; // Art-Net standard port
 ArtnetReceiver artnet;         // Art-Net instance
-uint8_t universe1 = 1;         // 0 - 15
-// uint8_t universe2 = 2;  // 0 - 15
 
 // LED settings
 CRGB leds[627]; // Maximum number of LEDs needed
@@ -43,23 +41,9 @@ const int pixelFactor = 3; // number of pixels displaying the same information t
 const int startUniverse = 0; // CHANGE FOR YOUR SETUP most software this is 1, some software send out artnet first universe as 0.
 const int START_UNIVERSE_A = 4;
 const int START_UNIVERSE_L = 7;
+int thisUniverse = 0;
 
 bool firstDmxFrameReceived = false;
-
-void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t *data)
-{
-  Serial.print("Universe: ");
-  Serial.print(universe);
-  Serial.print(", Length: ");
-  Serial.print(length);
-  Serial.print(", Data: ");
-  for (int i = 0; i < length; i++)
-  {
-    Serial.print(data[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-}
 
 void assignMacAndIps()
 {
@@ -167,6 +151,46 @@ void initTest()
   FastLED.show();
 }
 
+
+CRGB getColors(int i, const uint8_t *data)
+{
+  return CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+}
+
+void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
+{
+  // Serial.print("NAMED subscribeArtDmxUniverse: artnet data from ");
+  // Serial.print(remote.ip);
+  // Serial.print(":");
+  // Serial.print(remote.port);
+  // Serial.print("Size: ");
+  // Serial.print(size);
+  // Serial.print(", universe: ");
+  // Serial.print(thisUniverse);
+  // Serial.print(", Data: ");
+  // for (size_t i = 0; i < size; ++i)
+  // {
+  //   Serial.print(data[i]);
+  //   Serial.print(" ");
+  // }
+  // Serial.println();
+
+  for (size_t i = 0; i < size / 3; ++i)
+  {
+    int led = i * pixelFactor + ((thisUniverse - 1) * 170);
+    for (int p = 0; p < pixelFactor; p++)
+    {
+      if (led < NUM_LEDS)
+      {
+        leds[led] = getColors(i, data);
+        // Serial.printf("ledNo %i | r %i | g %i | b %i\n", led, data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+      }
+      led++;
+    }
+  }
+  FastLED.show();
+}
+
 void setup()
 {
   // Initialize Serial for debugging
@@ -205,16 +229,16 @@ void setup()
   artnet.begin();
 
   // if Artnet packet comes to this universe, forward them to fastled directly
-  artnet.forwardArtDmxDataToFastLED(universe1, leds, NUM_LEDS);
+  // artnet.forwardArtDmxDataToFastLED(1, leds, NUM_LEDS);
+  // artnet.forwardArtDmxDataToFastLED(4, leds, NUM_LEDS);
 
-  // // if Artnet packet comes to this universe, this function (lambda) is called
-  // artnet.subscribeArtDmxUniverse(universe1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
-  //     Serial.print("lambda : artnet data from ");
+  // if Artnet packet comes to this universe, this function (lambda) is called
+  // artnet.subscribeArtDmxUniverse(1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
+  //     Serial.print("INLINE subscribeArtDmxUniverse: artnet data from ");
   //     Serial.print(remote.ip);
   //     Serial.print(":");
   //     Serial.print(remote.port);
-  //     Serial.print(", universe = ");
-  //     Serial.print(universe1);
+  //     Serial.print(", universe = 1");
   //     Serial.print(", size = ");
   //     Serial.print(size);
   //     Serial.print(") :");
@@ -225,8 +249,8 @@ void setup()
   //     Serial.println();
   // });
 
-  // // you can also use pre-defined callbacks
-  // artnet.subscribeArtDmxUniverse(universe2, onDmxFrame);
+  thisUniverse = 1;
+  artnet.subscribeArtDmxUniverse(thisUniverse, onDmxFrame);
 }
 
 void loop()
