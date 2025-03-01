@@ -89,9 +89,49 @@ void assignMacAndIps() {
     }
 }
 
+void testBlinkThree(CRGB blinkColor) {
+  for (int r = 0; r < 3; r++)
+  {
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
+          leds[i] = blinkColor;
+      }
+      FastLED.show();
+      delay(500);
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
+          leds[i] = CRGB(0, 0, 0);
+      }
+      FastLED.show();
+      delay(500);
+  }
+}
+
 void initTest()
 {
   Serial.printf("Init test %i\n", config);
+
+  // Test blink three times with color depending on mode: Circle red, Arrow green, Laser + Scissors blue
+  if (config == Mode::MODE_CIRCLE)
+  {
+    testBlinkThree(CRGB(127, 0, 0));
+  }
+  if (config == Mode::MODE_ARROW)
+  {
+    testBlinkThree(CRGB(0, 127, 0));
+  }
+  if (config == Mode::MODE_LASERSCISSORS)
+  {
+    testBlinkThree(CRGB(0, 0, 127));
+  }
+
+  // Default test
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(127, 127, 127);
+  }
+  FastLED.show();
+  delay(500);
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = CRGB(127, 0, 0);
