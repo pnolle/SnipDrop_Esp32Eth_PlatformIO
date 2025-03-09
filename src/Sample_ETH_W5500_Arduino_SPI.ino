@@ -21,7 +21,7 @@ enum Mode
 };
 
 // Firmware configuration
-Mode config = Mode::MODE_CIRCLE;
+Mode config = Mode::MODE_LASERSCISSORS;
 
 byte mac[6];
 IPAddress local_IP;
@@ -88,7 +88,7 @@ void testBlinkThree(CRGB blinkColor)
   {
     for (int i = 0; i < NUM_LEDS; i++)
     {
-      CRGB *leds = nullptr;
+      leds[i] = blinkColor;
     }
     FastLED.show();
     delay(500);
@@ -228,9 +228,18 @@ void setup()
   // Start Art-Net
   artnet.begin();
 
+
+
+  // // TODO: suddenly latency!! :o so little frames
+
   // if Artnet packet comes to this universe, forward them to fastled directly
-  // artnet.forwardArtDmxDataToFastLED(1, leds, NUM_LEDS);
+  artnet.forwardArtDmxDataToFastLED(1, leds, NUM_LEDS);
   // artnet.forwardArtDmxDataToFastLED(4, leds, NUM_LEDS);
+
+  // // individual callback
+  // thisUniverse = 1;
+  // artnet.subscribeArtDmxUniverse(thisUniverse, onDmxFrame);
+
 
   // if Artnet packet comes to this universe, this function (lambda) is called
   // artnet.subscribeArtDmxUniverse(1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
@@ -248,9 +257,6 @@ void setup()
   //     }
   //     Serial.println();
   // });
-
-  thisUniverse = 1;
-  artnet.subscribeArtDmxUniverse(thisUniverse, onDmxFrame);
 }
 
 void loop()
