@@ -15,13 +15,13 @@
 // define enum for the different modes
 enum Mode
 {
-  MODE_CIRCLE,
-  MODE_ARROW,
-  MODE_LASERSCISSORS
+    MODE_CIRCLE = 0,
+    MODE_ARROW = 1,
+    MODE_LASERSCISSORS = 2
 };
 
 // Firmware configuration
-#define CONFIG Mode::MODE_ARROW
+#define CONFIG MODE_ARROW
 
 byte mac[6];
 IPAddress local_IP;
@@ -35,22 +35,13 @@ uint8_t universe1 = 1;         // 0 - 15
 // uint8_t universe2 = 2;  // 0 - 15
 
 // LED settings for LED strips
-int NUM_LEDS;
-CRGB *leds;
-
-#if CONFIG == Mode::MODE_CIRCLE
-NUM_LEDS = 507; // 507 leds in Circle
-leds[NUM_LEDS];
-#elif CONFIG == Mode::MODE_ARROW
-NUM_LEDS = 452; // 452 leds in Arrow
-leds[NUM_LEDS];
-#elif CONFIG == Mode::MODE_LASERSCISSORS
-NUM_LEDS = 627; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
-leds[NUM_LEDS];
-#endif
-
-// #define NUM_LEDS 260
-// CRGB leds[NUM_LEDS];
+const int NUM_LEDS_C = 507; // 507 leds_A in Circle
+const int NUM_LEDS_A = 452; // 452 leds_A in Arrow
+// const int NUM_LEDS_L = 646; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
+const int NUM_LEDS_L = 627; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
+CRGB leds_C[NUM_LEDS_C];
+CRGB leds_A[NUM_LEDS_A];
+CRGB leds_L[NUM_LEDS_L];
 
 const uint8_t PIN_LED_DATA = 22;
 const int pixelFactor = 3; // number of pixels displaying the same information to save universes
@@ -65,8 +56,7 @@ bool firstDmxFrameReceived = false;
 
 void assignMacAndIps()
 {
-#if CONFIG == Mode::MODE_CIRCLE
-  // #define NUM_LEDS 507
+#if CONFIG == MODE_CIRCLE
   mac[0] = 0xDE; // 222
   mac[1] = 0xAD; // 173
   mac[2] = 0xBE; // 190
@@ -75,8 +65,7 @@ void assignMacAndIps()
   mac[5] = 0xED; // 237
   local_IP = IPAddress(192, 168, 1, 24);
 
-#elif CONFIG == Mode::MODE_ARROW
-  // #define NUM_LEDS 452
+#elif CONFIG == MODE_ARROW
   mac[0] = 0xDE;
   mac[1] = 0xAD;
   mac[2] = 0xBE;
@@ -85,8 +74,7 @@ void assignMacAndIps()
   mac[5] = 0xEE; // 238
   local_IP = IPAddress(192, 168, 1, 25);
 
-#elif CONFIG == Mode::MODE_LASERSCISSORS
-  // #define NUM_LEDS 627
+#elif CONFIG == MODE_LASERSCISSORS
   mac[0] = 0xDE;
   mac[1] = 0xAD;
   mac[2] = 0xBE;
@@ -97,17 +85,17 @@ void assignMacAndIps()
 #endif
 }
 
-void testBlinkThree(CRGB blinkColor)
+void testBlinkThree(CRGB blinkColor, int numLeds, CRGB* leds)
 {
   for (int r = 0; r < 3; r++)
   {
-    for (int i = 0; i < NUM_LEDS; i++)
+    for (int i = 0; i < numLeds; i++)
     {
       leds[i] = blinkColor;
     }
     FastLED.show();
     delay(500);
-    for (int i = 0; i < NUM_LEDS; i++)
+    for (int i = 0; i < numLeds; i++)
     {
       leds[i] = CRGB(0, 0, 0);
     }
@@ -116,50 +104,50 @@ void testBlinkThree(CRGB blinkColor)
   }
 }
 
-void initTest()
+void initTest(int numLeds, CRGB* leds)
 {
   Serial.printf("Init test %i\n", CONFIG);
 
   // Test blink three times with color depending on mode: Circle red, Arrow green, Laser + Scissors blue
-  if (CONFIG == Mode::MODE_CIRCLE)
+  if (CONFIG == MODE_CIRCLE)
   {
-    testBlinkThree(CRGB(127, 0, 0));
+    testBlinkThree(CRGB(127, 0, 0), numLeds, leds);
   }
-  if (CONFIG == Mode::MODE_ARROW)
+  if (CONFIG == MODE_ARROW)
   {
-    testBlinkThree(CRGB(0, 127, 0));
+    testBlinkThree(CRGB(0, 127, 0), numLeds, leds);
   }
-  if (CONFIG == Mode::MODE_LASERSCISSORS)
+  if (CONFIG == MODE_LASERSCISSORS)
   {
-    testBlinkThree(CRGB(0, 0, 127));
+    testBlinkThree(CRGB(0, 0, 127), numLeds, leds);
   }
 
   // Default test
-  for (int i = 0; i < NUM_LEDS; i++)
+  for (int i = 0; i < numLeds; i++)
   {
     leds[i] = CRGB(127, 127, 127);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < NUM_LEDS; i++)
+  for (int i = 0; i < numLeds; i++)
   {
     leds[i] = CRGB(127, 0, 0);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < NUM_LEDS; i++)
+  for (int i = 0; i < numLeds; i++)
   {
     leds[i] = CRGB(0, 127, 0);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < NUM_LEDS; i++)
+  for (int i = 0; i < numLeds; i++)
   {
     leds[i] = CRGB(0, 0, 127);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < NUM_LEDS; i++)
+  for (int i = 0; i < numLeds; i++)
   {
     leds[i] = CRGB(0, 0, 0);
   }
@@ -281,26 +269,70 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   FastLED.show();
 }
 
-void setup()
-{
+int addDeadSpace(int led) {
+  int deadSpace = 0;
+  if (led > 19)
+  {
+    deadSpace = 5;
+  }
+  if (led > 45)
+  {
+    deadSpace += 6;
+  }
+  if (led > 65) //3
+  {
+    deadSpace += 5;
+  }
+  if (led > 91)
+  {
+    deadSpace += 6;
+  }
+  if (led > 111)
+  {
+    deadSpace += 5;
+  }
+  if (led > 138)  //6
+  {
+    deadSpace += 6;
+  }
+  if (led > 158)
+  {
+    deadSpace += 5;
+  }
+  if (led > 186)
+  {
+    deadSpace += 6;
+  }
+  if (led > 205)
+  {
+    deadSpace += 5;
+  }
+  if (led > 232)
+  {
+    deadSpace += 5;
+  }
+  if (led > 252)
+  {
+    deadSpace += 7;
+  }
+  // maximum deadSpace is 61
+  return led + deadSpace;
+}
+
   // Initialize Serial for debugging
 void setup()
 {
-#if CONFIG == Mode::MODE_CIRCLE
-  NUM_LEDS = NUM_LEDS_C;
-  leds = leds_C;
-#elif CONFIG == Mode::MODE_ARROW
-  NUM_LEDS = NUM_LEDS_A;
-  leds = leds_A;
-#elif CONFIG == Mode::MODE_LASERSCISSORS
-  NUM_LEDS = NUM_LEDS_L;
-  leds = leds_L;
-#endif
   Serial.println("This firmware is from the 'esp32_ethernet_platformIO' repo, 'artnetReceiver' branch.");
 
   assignMacAndIps();
 
-  FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
+  #if CONFIG == MODE_CIRCLE
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds_C, NUM_LEDS_C);
+  #elif CONFIG == MODE_ARROW  
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds_A, NUM_LEDS_A);
+  #elif CONFIG == MODE_LASERSCISSORS
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds_L, NUM_LEDS_L);
+  #endif
 
   // Configure SPI pins manually
   SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
@@ -325,10 +357,14 @@ void setup()
   // Start Art-Net
   artnet.begin();
 
-  // // LED test and number display
-  initTest();
-
-  // // TODO: suddenly latency!! :o so little frames
+  // LED test and number display
+  #if CONFIG == MODE_CIRCLE
+    initTest(NUM_LEDS_C, leds_C);
+  #elif CONFIG == MODE_ARROW
+    initTest(NUM_LEDS_A, leds_A);
+  #elif CONFIG == MODE_LASERSCISSORS
+    initTest(NUM_LEDS_L, leds_L);
+  #endif
 
   // if Artnet packet comes to this universe, forward them to fastled directly
   // artnet.forwardArtDmxDataToFastLED(universe1, leds, NUM_LEDS);
