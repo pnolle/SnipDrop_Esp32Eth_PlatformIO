@@ -188,7 +188,6 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   if (config == Mode::MODE_ARROW && (metadata.universe < START_UNIVERSE_A || metadata.universe >= START_UNIVERSE_L)) return;
   if (config == Mode::MODE_LASERSCISSORS && metadata.universe < START_UNIVERSE_L) return;
 
-  // Serial.print("universe: ");
   // Serial.println(metadata.universe);
   // Serial.print(", Data: ");
   // for (size_t i = 0; i < size; ++i)
@@ -203,13 +202,6 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
     Serial.println("DMX reception started.");
     firstDmxFrameReceived = true;
   }
-
-  // // set brightness of the whole strip
-  // if (universe == 15)
-  // {
-  //   FastLED.setBrightness(data[0]);
-  //   FastLED.show();
-  // }
 
   LedStrip strip = getCurrentStrip();
   uint8_t thisUniverse = metadata.universe - startUniverse; // global setting might be changed for certain strip types
@@ -370,36 +362,7 @@ void setup()
   // LED test and number display
   initTest();
 
-  // if Artnet packet comes to this universe, forward them to fastled directly
-  // artnet.forwardArtDmxDataToFastLED(universe1, leds_A, NUM_LEDS_A);
-  // artnet.forwardArtDmxDataToFastLED(4, leds, NUM_LEDS);
-
-  // // individual callback
-  // thisUniverse = 1;
-  // artnet.subscribeArtDmxUniverse(universe1, onDmxFrame);
-
-
-  // TODO: try this next
   artnet.subscribeArtDmx(onDmxFrame);
-
-
-
-  // if Artnet packet comes to this universe, this function (lambda) is called
-  // artnet.subscribeArtDmxUniverse(1, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
-  //     Serial.print("INLINE subscribeArtDmxUniverse: artnet data from ");
-  //     Serial.print(remote.ip);
-  //     Serial.print(":");
-  //     Serial.print(remote.port);
-  //     Serial.print(", universe = 1");
-  //     Serial.print(", size = ");
-  //     Serial.print(size);
-  //     Serial.print(") :");
-  //     for (size_t i = 0; i < size; ++i) {
-  //         Serial.print(data[i]);
-  //         Serial.print(",");
-  //     }
-  //     Serial.println();
-  // });
 }
 
 void loop()
