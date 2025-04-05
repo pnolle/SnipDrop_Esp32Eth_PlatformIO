@@ -51,7 +51,6 @@ const int pixelFactor = 3; // number of pixels displaying the same information t
 const int startUniverse = 0; // CHANGE FOR YOUR SETUP most software this is 1, some software send out artnet first universe as 0.
 const int START_UNIVERSE_A = 4;
 const int START_UNIVERSE_L = 7;
-int thisUniverse = 0;
 
 bool firstDmxFrameReceived = false;
 
@@ -169,14 +168,27 @@ CRGB getColors(int i, const uint8_t *data)
 // }
 void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
 {
-  Serial.print("NAMED subscribeArtDmxUniverse: artnet data from ");
-  Serial.println(remote.ip);
-  Serial.print(":");
-  Serial.println(remote.port);
-  Serial.print("size: ");
-  Serial.println(size);
-  Serial.print(", universe: ");
-  Serial.println(thisUniverse);
+
+  if (config == Mode::MODE_CIRCLE && metadata.universe != 1) return;
+  if (config == Mode::MODE_ARROW && metadata.universe != 4) return;
+  if (config == Mode::MODE_LASERSCISSORS && metadata.universe != 7) return;
+
+  // Serial.print("NAMED subscribeArtDmxUniverse: artnet data");
+  // Serial.println(remote.ip);
+  // Serial.print(":");
+  // Serial.println(remote.port);
+  // Serial.print("size: ");
+  // Serial.println(size);
+  // Serial.print(", metadata net: ");
+  // Serial.println(metadata.net);
+  // Serial.print(", metadata physical: ");
+  // Serial.println(metadata.physical);
+  // Serial.print(", metadata sequence: ");
+  // Serial.println(metadata.sequence);
+  // Serial.print(", metadata subnet: ");
+  // Serial.println(metadata.subnet);
+  // Serial.print(", metadata universe: ");
+  // Serial.print(metadata.universe);
   // Serial.print(", Data: ");
   // for (size_t i = 0; i < size; ++i)
   // {
@@ -203,7 +215,8 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   // {
   //   return;
   // }
-  // uint8_t thisUniverse = universe - startUniverse;
+
+  uint8_t thisUniverse = metadata.universe - startUniverse;
 
   // Serial.printf("onDmxFrame %u/%u %u %u %i %i\n", universe, maxUniverses, size, sequence, thisUniverse);
 
@@ -328,6 +341,9 @@ int addDeadSpace(int led)
 // Initialize Serial for debugging
 void setup()
 {
+  // Initialize Serial for debugging
+  Serial.begin(115200);
+  delay(1000); // Allow time for serial monitor to connect
   Serial.println("This firmware is from the 'esp32_ethernet_platformIO' repo, 'artnetReceiver' branch.");
 
   assignMacAndIps();
@@ -384,7 +400,7 @@ void setup()
   }
 
   // if Artnet packet comes to this universe, forward them to fastled directly
-  artnet.forwardArtDmxDataToFastLED(universe1, leds_A, NUM_LEDS_A);
+  // artnet.forwardArtDmxDataToFastLED(universe1, leds_A, NUM_LEDS_A);
   // artnet.forwardArtDmxDataToFastLED(4, leds, NUM_LEDS);
 
   // // individual callback
@@ -393,7 +409,7 @@ void setup()
 
 
   // TODO: try this next
-  // artnet.subscribeArtDmx(onDmxFrame);
+  artnet.subscribeArtDmx(onDmxFrame);
 
 
 
