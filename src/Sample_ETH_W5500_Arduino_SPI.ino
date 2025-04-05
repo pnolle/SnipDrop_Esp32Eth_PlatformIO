@@ -36,8 +36,8 @@ uint8_t universe1 = 1;         // 0 - 15
 
 // LED settings for LED strips
 const int NUM_LEDS_C = 507; // 507 leds_A in Circle
-// const int NUM_LEDS_A = 452; // 452 leds_A in Arrow
-const int NUM_LEDS_A = 200; // 452 leds_A in Arrow
+const int NUM_LEDS_A = 452; // 452 leds_A in Arrow
+// const int NUM_LEDS_A = 200; // 452 leds_A in Arrow
 // const int NUM_LEDS_L = 646; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
 const int NUM_LEDS_L = 627; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
 CRGB leds_C[NUM_LEDS_C];
