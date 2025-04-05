@@ -213,8 +213,11 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
 
   LedStrip strip = getCurrentStrip();
   uint8_t thisUniverse = metadata.universe - startUniverse; // global setting might be changed for certain strip types
-  int universalIterator = config == MODE_LASERSCISSORS ? NUM_LEDS_L : config == MODE_ARROW ? NUM_LEDS_A : NUM_LEDS_C;
+  int universalNumLeds = config == MODE_LASERSCISSORS ? NUM_LEDS_L : config == MODE_ARROW ? NUM_LEDS_A : NUM_LEDS_C;
   int universalShift = config == MODE_LASERSCISSORS ? START_UNIVERSE_L : config == MODE_ARROW ? START_UNIVERSE_A : 1;
+
+  // TODO: this is introducing flickering issues with numbers higher than 1. why?
+  int pixelOffset = config == MODE_LASERSCISSORS ? 5 : config == MODE_ARROW ? 5 : 5; // offset pushes all pixels to the right to exclude the 5-pixel failover strips
 
   // special treatment for L strip
   int leapLCounter = 0;
@@ -224,12 +227,13 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   for (int i = 0; i < strip.length / 3; i++)
   {
     int led = i * pixelFactor + ((thisUniverse - universalShift) * 170);
+    led += pixelOffset;
 
-    if (thisUniverse < START_UNIVERSE_L) // this are C or A strips
+    if (thisUniverse < START_UNIVERSE_L) // this is the C or A strip
     {
       for (int p = 0; p < pixelFactor; p++)
       {
-        if (led < universalIterator)
+        if (led < universalNumLeds)
         {
           strip.leds[led] = getColors(i, data);
         }
@@ -239,9 +243,9 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
     else if (thisUniverse >= START_UNIVERSE_L) // this is the L strip on universe 7
     {
       int led = i * pixelFactor + ((thisUniverse - START_UNIVERSE_L) * 170) + leapLCounter; // for thisUniverse==7 ? led start at 0 : <nothing else>
-      // if (led==509) Serial.printf("L-STRIP from %i to infinityyy! \tled%i/%i %u/%u-%i %u %u %i %i\n", START_UNIVERSE_L, led, NUM_LEDS_L, universe, maxUniverses, START_UNIVERSE_L, size, sequence, thisUniverse, sendFrame);
+      led += pixelOffset;
 
-      // special treatment for the L strip because uses 585 leds, which is 75 longer than 3*170 (=510): add 1 extra LED every 2nd time
+      // special treatment for the L strip because uses 585 leds, which is 75 longer than 3*170 (=510): add 1 extra LED every 2nd time (646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace)
       int thisPixelFactor = pixelFactor;
       if (leapLNow == 2)
       {
@@ -252,15 +256,14 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
       leapLNow++;
       for (int p = 0; p < thisPixelFactor; p++)
       {
+        // special treatment for the L strip because it has ends that are not supposed to light up
         int deadSpaceLed = addDeadSpace(led);
         if (deadSpaceLed < NUM_LEDS_L)
         {
-          leds_L[deadSpaceLed] = getColors(i, data);
-          // Serial.printf("leds_L led %i => led incl. deadSpace %i | thisUniverse %i | r %i | g %i | b %i\n", led, addDeadSpace(led), thisUniverse, data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+          strip.leds[deadSpaceLed] = getColors(i, data);
         }
         led++;
       }
-      // Serial.println("");
     }
   }
 
