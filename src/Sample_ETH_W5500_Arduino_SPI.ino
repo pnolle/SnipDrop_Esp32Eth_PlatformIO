@@ -211,6 +211,7 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   //   FastLED.show();
   // }
 
+  LedStrip strip = getCurrentStrip();
   uint8_t thisUniverse = metadata.universe - startUniverse; // global setting might be changed for certain strip types
   int universalIterator = config == MODE_LASERSCISSORS ? NUM_LEDS_L : config == MODE_ARROW ? NUM_LEDS_A : NUM_LEDS_C;
   int universalShift = config == MODE_LASERSCISSORS ? START_UNIVERSE_L : config == MODE_ARROW ? START_UNIVERSE_A : 1;
@@ -218,45 +219,19 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   // special treatment for L strip
   int leapLCounter = 0;
   int leapLNow = 0;
-
+  
   // read universe and put into the right part of the display buffer
-  for (int i = 0; i < size / 3; i++)
+  for (int i = 0; i < strip.length / 3; i++)
   {
     int led = i * pixelFactor + ((thisUniverse - universalShift) * 170);
-    for (int p = 0; p < pixelFactor; p++)
-    {
-      if (led < universalIterator)
-      {
-        leds_C[led] = getColors(i, data);
-      }
-      led++;
-    }
 
-    // thisUniverse is the first relevant universe
-    if (thisUniverse < START_UNIVERSE_A) // this is the C strip on universe 1
+    if (thisUniverse < START_UNIVERSE_L) // this are C or A strips
     {
-      int led = i * pixelFactor + ((thisUniverse - 1) * 170); // for thisUniverse==1 ? led start at 0 : led start at 170
-      // Serial.printf("C-STRIP from 0 to %i \tled%i/%i %u/%u-%i %u %u %i %i\n", START_UNIVERSE_A-1, led, NUM_LEDS_C, universe, maxUniverses, 0, size, sequence, thisUniverse, sendFrame);
       for (int p = 0; p < pixelFactor; p++)
       {
-        if (led < NUM_LEDS_C)
+        if (led < universalIterator)
         {
-          leds_C[led] = getColors(i, data);
-          // Serial.printf("ledNo %i | r %i | g %i | b %i\n", led, data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
-        }
-        led++;
-      }
-    }
-    else if (thisUniverse >= START_UNIVERSE_A && thisUniverse < START_UNIVERSE_L) // this is the A strip on universe 4
-    {
-      int led = i * pixelFactor + ((thisUniverse - START_UNIVERSE_A) * 170); // for thisUniverse==3 ? led start at 0 : led start at 170
-      // Serial.printf("%i: A-STRIP from %i to %i \tthisUniverse%i led%i/%i %u/%u %u\n", i, START_UNIVERSE_A, START_UNIVERSE_L-1, thisUniverse, led, NUM_LEDS_A, size);
-      for (int p = 0; p < pixelFactor; p++)
-      {
-        if (led < NUM_LEDS_A)
-        {
-          leds_A[led] = getColors(i, data);
-          // Serial.printf("leds_A ledNo %i | thisUniverse %i | r %i | g %i | b %i\n", led, thisUniverse, data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+          strip.leds[led] = getColors(i, data);
         }
         led++;
       }
