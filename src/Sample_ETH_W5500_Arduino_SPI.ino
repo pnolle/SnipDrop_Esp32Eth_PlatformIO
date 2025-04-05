@@ -169,9 +169,9 @@ CRGB getColors(int i, const uint8_t *data)
 void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
 {
 
-  if (config == Mode::MODE_CIRCLE && metadata.universe != 1) return;
-  if (config == Mode::MODE_ARROW && metadata.universe != 4) return;
-  if (config == Mode::MODE_LASERSCISSORS && metadata.universe != 7) return;
+  if (config == Mode::MODE_CIRCLE && metadata.universe <= START_UNIVERSE_A) return;
+  if (config == Mode::MODE_ARROW && (metadata.universe < START_UNIVERSE_A || metadata.universe >= START_UNIVERSE_L)) return;
+  if (config == Mode::MODE_LASERSCISSORS && metadata.universe < START_UNIVERSE_L) return;
 
   // Serial.print("NAMED subscribeArtDmxUniverse: artnet data");
   // Serial.println(remote.ip);
@@ -187,8 +187,8 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   // Serial.println(metadata.sequence);
   // Serial.print(", metadata subnet: ");
   // Serial.println(metadata.subnet);
-  // Serial.print(", metadata universe: ");
-  // Serial.print(metadata.universe);
+  // Serial.print("universe: ");
+  // Serial.println(metadata.universe);
   // Serial.print(", Data: ");
   // for (size_t i = 0; i < size; ++i)
   // {
