@@ -43,6 +43,10 @@ const int NUM_LEDS_L = 627; // 646 leds_A in Laser v3 + Scissors, 585 in use wit
 CRGB leds_C[NUM_LEDS_C];
 CRGB leds_A[NUM_LEDS_A];
 CRGB leds_L[NUM_LEDS_L];
+struct LedStrip {
+  CRGB* leds;
+  int length;
+};
 
 const uint8_t PIN_LED_DATA = 22;
 const int pixelFactor = 3; // number of pixels displaying the same information to save universes
@@ -54,11 +58,23 @@ const int START_UNIVERSE_L = 7;
 
 bool firstDmxFrameReceived = false;
 
+LedStrip getCurrentStrip() {
+  switch (config) {
+      case MODE_CIRCLE:
+          return {leds_C, NUM_LEDS_C};
+      case MODE_ARROW:
+          return {leds_A, NUM_LEDS_A};
+      case MODE_LASERSCISSORS:
+          return {leds_L, NUM_LEDS_L};
+      default:
+          return {nullptr, 0};
+  }
+}
+
 void assignMacAndIps()
 {
   if (config == MODE_CIRCLE)
   {
-    initTest(NUM_LEDS_C, leds_C);
     mac[1] = 0xAD; // 173
     mac[2] = 0xBE; // 190
     mac[3] = 0xEF; // 239
@@ -89,71 +105,73 @@ void assignMacAndIps()
   }
 }
 
-void testBlinkThree(CRGB blinkColor, int numLeds, CRGB *leds)
+void testBlinkThree(CRGB blinkColor)
 {
+  LedStrip strip = getCurrentStrip();
   for (int r = 0; r < 3; r++)
   {
-    for (int i = 0; i < numLeds; i++)
+    for (int i = 0; i < strip.length; i++)
     {
-      leds[i] = blinkColor;
+      strip.leds[i] = blinkColor;
     }
     FastLED.show();
     delay(500);
-    for (int i = 0; i < numLeds; i++)
+    for (int i = 0; i < strip.length; i++)
     {
-      leds[i] = CRGB(0, 0, 0);
+      strip.leds[i] = CRGB(0, 0, 0);
     }
     FastLED.show();
     delay(500);
   }
 }
 
-void initTest(int numLeds, CRGB *leds)
+void initTest()
 {
   Serial.printf("Init test %i\n", config);
 
   // Test blink three times with color depending on mode: Circle red, Arrow green, Laser + Scissors blue
   if (config == MODE_CIRCLE)
   {
-    testBlinkThree(CRGB(127, 0, 0), numLeds, leds);
+    testBlinkThree(CRGB(127, 0, 0));
   }
   if (config == MODE_ARROW)
   {
-    testBlinkThree(CRGB(0, 127, 0), numLeds, leds);
+    testBlinkThree(CRGB(0, 127, 0));
   }
   if (config == MODE_LASERSCISSORS)
   {
-    testBlinkThree(CRGB(0, 0, 127), numLeds, leds);
+    testBlinkThree(CRGB(0, 0, 127));
   }
 
   // Default test
-  for (int i = 0; i < numLeds; i++)
+  LedStrip strip = getCurrentStrip();
+  for (int i = 0; i < strip.length; i++)
   {
-    leds[i] = CRGB(127, 127, 127);
+    strip.leds[i] = CRGB(127, 127, 127);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < numLeds; i++)
+  for (int i = 0; i < strip.length; i++)
   {
-    leds[i] = CRGB(127, 0, 0);
+    strip.leds[i] = CRGB(127, 0, 0);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < numLeds; i++)
+  for (int i = 0; i < strip.length; i++)
   {
-    leds[i] = CRGB(0, 127, 0);
+    strip.leds[i] = CRGB(0, 127, 0);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < numLeds; i++)
+  for (int i = 0; i < strip.length; i++)
   {
-    leds[i] = CRGB(0, 0, 127);
+    strip.leds[i] = CRGB(0, 0, 127);
   }
   FastLED.show();
   delay(500);
-  for (int i = 0; i < numLeds; i++)
+  for (int i = 0; i < strip.length; i++)
   {
-    leds[i] = CRGB(0, 0, 0);
+    strip.leds[i] = CRGB(0, 0, 0);
   }
   FastLED.show();
 }
@@ -163,9 +181,6 @@ CRGB getColors(int i, const uint8_t *data)
   return CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
 }
 
-// [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata& metadata, const ArtNetRemoteInfo& remote) {
-//   // if Artnet packet comes, this function is called for every universe
-// }
 void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
 {
 
@@ -173,20 +188,6 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   if (config == Mode::MODE_ARROW && (metadata.universe < START_UNIVERSE_A || metadata.universe >= START_UNIVERSE_L)) return;
   if (config == Mode::MODE_LASERSCISSORS && metadata.universe < START_UNIVERSE_L) return;
 
-  // Serial.print("NAMED subscribeArtDmxUniverse: artnet data");
-  // Serial.println(remote.ip);
-  // Serial.print(":");
-  // Serial.println(remote.port);
-  // Serial.print("size: ");
-  // Serial.println(size);
-  // Serial.print(", metadata net: ");
-  // Serial.println(metadata.net);
-  // Serial.print(", metadata physical: ");
-  // Serial.println(metadata.physical);
-  // Serial.print(", metadata sequence: ");
-  // Serial.println(metadata.sequence);
-  // Serial.print(", metadata subnet: ");
-  // Serial.println(metadata.subnet);
   // Serial.print("universe: ");
   // Serial.println(metadata.universe);
   // Serial.print(", Data: ");
@@ -210,15 +211,9 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   //   FastLED.show();
   // }
 
-  // // range check
-  // if (universe < startUniverse)
-  // {
-  //   return;
-  // }
-
-  uint8_t thisUniverse = metadata.universe - startUniverse;
-
-  // Serial.printf("onDmxFrame %u/%u %u %u %i %i\n", universe, maxUniverses, size, sequence, thisUniverse);
+  uint8_t thisUniverse = metadata.universe - startUniverse; // global setting might be changed for certain strip types
+  int universalIterator = config == MODE_LASERSCISSORS ? NUM_LEDS_L : config == MODE_ARROW ? NUM_LEDS_A : NUM_LEDS_C;
+  int universalShift = config == MODE_LASERSCISSORS ? START_UNIVERSE_L : config == MODE_ARROW ? START_UNIVERSE_A : 1;
 
   // special treatment for L strip
   int leapLCounter = 0;
@@ -227,6 +222,16 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   // read universe and put into the right part of the display buffer
   for (int i = 0; i < size / 3; i++)
   {
+    int led = i * pixelFactor + ((thisUniverse - universalShift) * 170);
+    for (int p = 0; p < pixelFactor; p++)
+    {
+      if (led < universalIterator)
+      {
+        leds_C[led] = getColors(i, data);
+      }
+      led++;
+    }
+
     // thisUniverse is the first relevant universe
     if (thisUniverse < START_UNIVERSE_A) // this is the C strip on universe 1
     {
@@ -350,7 +355,7 @@ void setup()
 
   if (config == MODE_CIRCLE)
   {
-    initTest(NUM_LEDS_C, leds_C);
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds_C, NUM_LEDS_C);
   }
   else if (config == MODE_ARROW)
   {
@@ -358,8 +363,7 @@ void setup()
   }
   else if (config == MODE_LASERSCISSORS)
   {
-    FastLED.addLeds<WS2812,
-                    PIN_LED_DATA, GRB>(leds_L, NUM_LEDS_L);
+    FastLED.addLeds<WS2812, PIN_LED_DATA, GRB>(leds_L, NUM_LEDS_L);
   }
 
   // Configure SPI pins manually
@@ -386,18 +390,7 @@ void setup()
   artnet.begin();
 
   // LED test and number display
-  if (config == MODE_CIRCLE)
-  {
-    initTest(NUM_LEDS_C, leds_C);
-  }
-  else if (config == MODE_ARROW)
-  {
-    initTest(NUM_LEDS_A, leds_A);
-  }
-  else if (config == MODE_LASERSCISSORS)
-  {
-    initTest(NUM_LEDS_L, leds_L);
-  }
+  initTest();
 
   // if Artnet packet comes to this universe, forward them to fastled directly
   // artnet.forwardArtDmxDataToFastLED(universe1, leds_A, NUM_LEDS_A);
