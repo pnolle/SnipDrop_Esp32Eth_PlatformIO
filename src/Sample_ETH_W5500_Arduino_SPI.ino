@@ -21,7 +21,7 @@ enum Mode
 };
 
 // Firmware configuration
-Mode config = Mode::MODE_CIRCLE;
+Mode config = Mode::MODE_LASERSCISSORS;
 
 byte mac[6];
 IPAddress local_IP;
@@ -33,12 +33,9 @@ unsigned int localPort = 6454; // Art-Net standard port
 ArtnetReceiver artnet;         // Art-Net instance
 
 // LED settings for LED strips
-// const int NUM_LEDS_C = 507; // 507 leds in Circle
-const int NUM_LEDS_C = 250; // 507 leds in Circle
-// const int NUM_LEDS_A = 452; // 452 leds in Arrow
-const int NUM_LEDS_A = 231; // 452 leds in Arrow
-// const int NUM_LEDS_L = 646; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
-const int NUM_LEDS_L = 627; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
+const int NUM_LEDS_C = 507; // 507 leds in Circle
+const int NUM_LEDS_A = 452; // 452 leds in Arrow
+const int NUM_LEDS_L = 646; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
 CRGB leds_C[NUM_LEDS_C];
 CRGB leds_A[NUM_LEDS_A];
 CRGB leds_L[NUM_LEDS_L];
@@ -366,5 +363,4 @@ void setup()
 void loop()
 {
   artnet.parse();
-  FastLED.show();
 }
