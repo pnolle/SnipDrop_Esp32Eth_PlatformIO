@@ -21,7 +21,7 @@ enum Mode
 };
 
 // Firmware configuration
-Mode config = Mode::MODE_ARROW;
+Mode config = Mode::MODE_CIRCLE;
 
 byte mac[6];
 IPAddress local_IP;
@@ -31,15 +31,14 @@ IPAddress primaryDNS(8, 8, 8, 8);   // optional
 
 unsigned int localPort = 6454; // Art-Net standard port
 ArtnetReceiver artnet;         // Art-Net instance
-uint8_t universe1 = 1;         // 0 - 15
-// uint8_t universe2 = 2;  // 0 - 15
 
 // LED settings for LED strips
-const int NUM_LEDS_C = 507; // 507 leds_A in Circle
-const int NUM_LEDS_A = 452; // 452 leds_A in Arrow
-// const int NUM_LEDS_A = 200; // 452 leds_A in Arrow
-// const int NUM_LEDS_L = 646; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
-const int NUM_LEDS_L = 627; // 646 leds_A in Laser v3 + Scissors, 585 in use without deadSpace
+// const int NUM_LEDS_C = 507; // 507 leds in Circle
+const int NUM_LEDS_C = 250; // 507 leds in Circle
+// const int NUM_LEDS_A = 452; // 452 leds in Arrow
+const int NUM_LEDS_A = 231; // 452 leds in Arrow
+// const int NUM_LEDS_L = 646; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
+const int NUM_LEDS_L = 627; // 646 leds in Laser v3 + Scissors, 585 in use without deadSpace
 CRGB leds_C[NUM_LEDS_C];
 CRGB leds_A[NUM_LEDS_A];
 CRGB leds_L[NUM_LEDS_L];
@@ -183,13 +182,11 @@ CRGB getColors(int i, const uint8_t *data)
 
 void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
 {
-
-  if (config == Mode::MODE_CIRCLE && metadata.universe <= START_UNIVERSE_A) return;
+  if (config == Mode::MODE_CIRCLE && metadata.universe >= START_UNIVERSE_A) return;
   if (config == Mode::MODE_ARROW && (metadata.universe < START_UNIVERSE_A || metadata.universe >= START_UNIVERSE_L)) return;
   if (config == Mode::MODE_LASERSCISSORS && metadata.universe < START_UNIVERSE_L) return;
 
-  // Serial.println(metadata.universe);
-  // Serial.print(", Data: ");
+  // Serial.printf("UNIVERSE %i\n", metadata.universe);
   // for (size_t i = 0; i < size; ++i)
   // {
   //   Serial.print(data[i]);
@@ -207,8 +204,6 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   uint8_t thisUniverse = metadata.universe - startUniverse; // global setting might be changed for certain strip types
   int universalNumLeds = config == MODE_LASERSCISSORS ? NUM_LEDS_L : config == MODE_ARROW ? NUM_LEDS_A : NUM_LEDS_C;
   int universalShift = config == MODE_LASERSCISSORS ? START_UNIVERSE_L : config == MODE_ARROW ? START_UNIVERSE_A : 1;
-
-  // TODO: this is introducing flickering issues with numbers higher than 1. why?
   int pixelOffset = config == MODE_LASERSCISSORS ? 5 : config == MODE_ARROW ? 5 : 5; // offset pushes all pixels to the right to exclude the 5-pixel failover strips
 
   // special treatment for L strip
@@ -220,6 +215,7 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   {
     int led = i * pixelFactor + ((thisUniverse - universalShift) * 170);
     led += pixelOffset;
+    // Serial.printf("%i ", led);
 
     if (thisUniverse < START_UNIVERSE_L) // this is the C or A strip
     {
@@ -362,6 +358,8 @@ void setup()
   // LED test and number display
   initTest();
 
+  // artnet.forwardArtDmxDataToFastLED(1, leds_C, NUM_LEDS_C);
+  // artnet.forwardArtDmxDataToFastLED(4, leds_A, NUM_LEDS_A);
   artnet.subscribeArtDmx(onDmxFrame);
 }
 
