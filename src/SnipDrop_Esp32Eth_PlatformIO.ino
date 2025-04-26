@@ -14,6 +14,12 @@
 #define RST_PIN 5  // Optional, leave unconnected if not used
 #define IRQ_PIN -1 // 4 // Set to 1 if IRQ is not wired
 
+// Mode switch wiring
+#define MODESWITCH_IN 17
+#define MODESWITCH_1 16
+#define MODESWITCH_2 18
+#define MODESWITCH_3 21 // originally tried using pin 19: issues, probably due to using SPI for Ethernet. On many ESP32 boards, GPIO 19 is used as the SPI peripheral's MISO (Master In Slave Out) pin. 
+
 // define enum for the different modes
 enum Mode
 {
@@ -23,7 +29,7 @@ enum Mode
 };
 
 // Firmware configuration
-Mode config = Mode::MODE_LASERSCISSORS;
+Mode config = Mode::MODE_CIRCLE;
 
 byte mac[6];
 IPAddress local_IP;
@@ -54,6 +60,7 @@ const int START_UNIVERSE_L = 7;
 
 bool firstDmxFrameReceived = false;
 
+// LED setup and helpers
 LedStrip getCurrentStrip() {
   switch (config) {
       case MODE_CIRCLE:
@@ -67,6 +74,63 @@ LedStrip getCurrentStrip() {
   }
 }
 
+CRGB getColors(int i, const uint8_t *data)
+{
+  return CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+}
+
+int addDeadSpace(int led)
+{
+  int deadSpace = 0;
+  if (led > 19)
+  {
+    deadSpace = 5;
+  }
+  if (led > 45)
+  {
+    deadSpace += 6;
+  }
+  if (led > 65) // 3
+  {
+    deadSpace += 5;
+  }
+  if (led > 91)
+  {
+    deadSpace += 6;
+  }
+  if (led > 111)
+  {
+    deadSpace += 5;
+  }
+  if (led > 138) // 6
+  {
+    deadSpace += 6;
+  }
+  if (led > 158)
+  {
+    deadSpace += 5;
+  }
+  if (led > 186)
+  {
+    deadSpace += 6;
+  }
+  if (led > 205)
+  {
+    deadSpace += 5;
+  }
+  if (led > 232)
+  {
+    deadSpace += 5;
+  }
+  if (led > 252)
+  {
+    deadSpace += 7;
+  }
+  // maximum deadSpace is 61
+  return led + deadSpace;
+}
+
+// Network setup
 void assignMacAndIps()
 {
   if (config == MODE_CIRCLE)
@@ -101,6 +165,80 @@ void assignMacAndIps()
   }
 }
 
+// Modeswitch code
+void modeDetect() {
+  // Configure input pin
+  pinMode(MODESWITCH_IN, INPUT_PULLUP);
+
+  // Configure output pins
+  pinMode(MODESWITCH_1, OUTPUT);
+  pinMode(MODESWITCH_2, OUTPUT);
+  pinMode(MODESWITCH_3, OUTPUT);
+
+  // Initialize output pins to HIGH (disconnected state)
+  digitalWrite(MODESWITCH_1, HIGH);
+  digitalWrite(MODESWITCH_2, HIGH);
+  digitalWrite(MODESWITCH_3, HIGH);
+
+  // Check connections
+  checkConnections();
+}
+
+void checkConnections() {
+  // Mode 1: Check if MODESWITCH_1 and MODESWITCH_IN are connected
+  digitalWrite(MODESWITCH_1, LOW);
+  delay(200); // Small delay to stabilize the signal
+  bool mode1 = digitalRead(MODESWITCH_IN) == LOW;
+  digitalWrite(MODESWITCH_1, HIGH);
+  Serial.printf("Mode 1: %s\n", mode1 ? "Detected" : "Not Detected");
+
+  // Mode 2: Check if MODESWITCH_2 and MODESWITCH_IN are connected
+  digitalWrite(MODESWITCH_2, LOW);
+  delay(200);
+  bool mode2 = digitalRead(MODESWITCH_IN) == LOW;
+  digitalWrite(MODESWITCH_2, HIGH);
+  Serial.printf("Mode 2: %s\n", mode2 ? "Detected" : "Not Detected");
+
+  // Mode 3: Check if MODESWITCH_3 and MODESWITCH_IN are connected
+  digitalWrite(MODESWITCH_3, LOW);
+  delay(200);
+  bool mode3 = digitalRead(MODESWITCH_IN) == LOW;
+  digitalWrite(MODESWITCH_3, HIGH);
+  Serial.printf("Mode 3: %s\n", mode3 ? "Detected" : "Not Detected");
+
+  // Set firmware mode accordingly
+  if (mode1) {
+    setFirmwareMode(1);
+  } else if (mode2) {
+    setFirmwareMode(2);
+  } else if (mode3) {
+    setFirmwareMode(3);
+  } else {
+    Serial.println("No valid mode detected");
+  }
+}
+
+void setFirmwareMode(int mode) {
+  switch (mode) {
+    case 1:
+      Serial.println("Setting firmware to mode CIRCLE");
+      config = Mode::MODE_CIRCLE;
+      break;
+    case 2:
+      Serial.println("Setting firmware to mode ARROW");
+      config = Mode::MODE_ARROW;
+      break;
+    case 3:
+      Serial.println("Setting firmware to mode LASERSCISSORS");
+      config = Mode::MODE_LASERSCISSORS;
+      break;
+    default:
+      Serial.println("Unknown mode");
+      break;
+  }
+}
+
+// Test display on startup
 void testBlinkThree(CRGB blinkColor)
 {
   LedStrip strip = getCurrentStrip();
@@ -172,11 +310,7 @@ void initTest()
   FastLED.show();
 }
 
-CRGB getColors(int i, const uint8_t *data)
-{
-  return CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
-}
-
+// Main DMX callback
 void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
 {
   if (config == Mode::MODE_CIRCLE && metadata.universe >= START_UNIVERSE_A) return;
@@ -255,66 +389,17 @@ void onDmxFrame(const uint8_t *data, uint16_t size, const ArtDmxMetadata &metada
   FastLED.show();
 }
 
-int addDeadSpace(int led)
-{
-  int deadSpace = 0;
-  if (led > 19)
-  {
-    deadSpace = 5;
-  }
-  if (led > 45)
-  {
-    deadSpace += 6;
-  }
-  if (led > 65) // 3
-  {
-    deadSpace += 5;
-  }
-  if (led > 91)
-  {
-    deadSpace += 6;
-  }
-  if (led > 111)
-  {
-    deadSpace += 5;
-  }
-  if (led > 138) // 6
-  {
-    deadSpace += 6;
-  }
-  if (led > 158)
-  {
-    deadSpace += 5;
-  }
-  if (led > 186)
-  {
-    deadSpace += 6;
-  }
-  if (led > 205)
-  {
-    deadSpace += 5;
-  }
-  if (led > 232)
-  {
-    deadSpace += 5;
-  }
-  if (led > 252)
-  {
-    deadSpace += 7;
-  }
-  // maximum deadSpace is 61
-  return led + deadSpace;
-}
-
-// Initialize Serial for debugging
+// Main setup
 void setup()
 {
   // Initialize Serial for debugging
   Serial.begin(115200);
   delay(1000); // Allow time for serial monitor to connect
-  Serial.println("This firmware is from the 'esp32_ethernet_platformIO' repo, 'artnetReceiver' branch.");
 
   assignMacAndIps();
+
+  // detect mode via jumper switch
+  modeDetect();
 
   if (config == MODE_CIRCLE)
   {
@@ -360,6 +445,7 @@ void setup()
   artnet.subscribeArtDmx(onDmxFrame);
 }
 
+// Main loop
 void loop()
 {
   artnet.parse();
