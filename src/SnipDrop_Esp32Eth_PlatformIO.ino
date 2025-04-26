@@ -1,8 +1,10 @@
 #include <SPI.h>
 #include <Ethernet.h>
-
 #include <FastLED.h> // include FastLED *before* Artnet
 #include <ArtnetEther.h>
+
+// Data pin for LED strips
+#define PIN_LED_DATA 22
 
 // Ethernet module wiring
 #define SCK_PIN 14
@@ -43,8 +45,6 @@ struct LedStrip {
   CRGB* leds;
   int length;
 };
-
-const uint8_t PIN_LED_DATA = 22;
 const int pixelFactor = 3; // number of pixels displaying the same information to save universes
 
 // Art-Net / DMX settings
