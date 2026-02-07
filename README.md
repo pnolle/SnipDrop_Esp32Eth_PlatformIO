@@ -47,7 +47,7 @@ Details see ``platformio.ini``.
 
 ## MIDI Mappings
 
-Mapping MIDI notes from the track in our DAW to controls in Qlc+. These controls play animations or control single color values for our lights, which are the SnipDrop and some Asteras.
+Mapping MIDI notes from the track in our DAW to controls in Qlc+. These controls play animations or control single color values for our lights, which are the SnipDrop and some Asteras. (This has nothing to do with the code in this repo, just notes about our setup.)
 
 | Qlc | Cmd / Note | Ableton | Reaper | Asteras | SnipDrop |
 | - | - | - | - | - | - |
